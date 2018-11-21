@@ -1,6 +1,24 @@
 const { NerManager } = require('node-nlp');
 
 const manager = new NerManager({ threshold: 0.8 });
+const Bluebird = require('Bluebird');
+const fetch = require('node-fetch');
+global.Headers = fetch.Headers;
+fetch.Promise = Bluebird;
+
+let base64 = require('base-64');
+let url = 'https://stardust-staging.softhouselabs.com/api/commission/296';
+let username = 'XXXXXX';
+let password = 'XXXXXX';
+let headers = new Headers();
+
+//headers.append('Content-Type', 'text/json');
+headers.append('Authorization', 'Basic' + base64.encode(username + ":" + password));
+
+fetch(url,{ method: 'GET', headers: headers})
+    .then(res => res)
+    .then(json => console.log(json));
+
 manager.addNamedEntityText('skill','NodeJS',['en'],['nodejs', 'node']);
 manager.addNamedEntityText('skill','Java',['en'],['java']);
 manager.addNamedEntityText('skill','Javascript',['en'],['javascript']);
