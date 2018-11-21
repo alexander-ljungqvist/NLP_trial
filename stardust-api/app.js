@@ -1,34 +1,47 @@
 const { NerManager } = require('node-nlp');
-
 const manager = new NerManager({ threshold: 0.8 });
-var rp = require('request-promise');
 
-
-let url = 'https://stardust-staging.softhouselabs.com/api/commission/296';
-
-rp(url,{ 'auth': {
-    'user': 'exjobbare@stardust.se',
-    'pass': 'ExjobbareStardust2018',
-    'sendImmediately': false
-  }})
-    .then(function (response) {
-        console.log(response);
-    })
-    .catch(function (err) {
-        // Crawling failed...
-    });
+const request = require('request-promise');
+const url = 'https://stardust-staging.softhouselabs.com/api/commission/296';
 
 manager.addNamedEntityText('skill','NodeJS',['en'],['nodejs', 'node']);
 manager.addNamedEntityText('skill','Java',['en'],['java']);
 manager.addNamedEntityText('skill','Javascript',['en'],['javascript']);
+manager.addNamedEntityText('skill','GUI',['en'],['gui', 'interface']);
 manager.addNamedEntityText('skillGroup','Webb',['en'],['webb']);
-manager.findEntities(
-  'This project needs someone who can nodejs for webb, and NodeJS is very important. Thats why I like node. YEAH NODE. And it also needs java and javaScript',
-  'en',
-).then(entities => {
-  const skillList = entities.reduce((skills, entity) => {
-    skills[entity.option] = entity.entity;
-    return skills;
-  }, {});
-  console.log(skillList);
-})
+manager.addNamedEntityText('skillGroup','Database',['en'],['database']);
+
+async function fetchStardustData(){
+  const options = {
+      'method': 'GET',
+      'url': url,
+      'auth': {
+        'user': 'exjobbare@stardust.se',
+        'pass': 'ExjobbareStardust2018',
+      }
+  }
+  await request(options)
+      .then(response => {
+          const description = JSON.stringify(JSON.parse(response).briefingDocument);
+          console.log(description);
+          readDescription(description);
+      })
+      .catch(err => {
+          console.log(err); // Crawling failed...
+      });
+}
+
+function readDescription(description){
+  manager.findEntities(
+    description,
+    'en',
+  ).then(entities => {
+    const skillList = entities.reduce((skills, entity) => {
+      skills[entity.option] = entity.entity;
+      return skills;
+    }, {});
+    console.log(skillList);
+  })
+}
+
+fetchStardustData();
