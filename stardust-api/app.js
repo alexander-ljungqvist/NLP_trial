@@ -1,19 +1,22 @@
 const { NerManager } = require('node-nlp');
 
 const manager = new NerManager({ threshold: 0.8 });
-var request = require('request');
+var rp = require('request-promise');
+
 
 let url = 'https://stardust-staging.softhouselabs.com/api/commission/296';
 
-  request(url, { 'auth': {
-      'user': 'exjobbare@stardust.se',
-      'pass': 'ExjobbareStardust2018',
-      'sendImmediately': false
-    }}, function (error, response, body) {
-  if (!error && response.statusCode == 200) {
-    console.log(body)
-  }
-})
+rp(url,{ 'auth': {
+    'user': 'exjobbare@stardust.se',
+    'pass': 'ExjobbareStardust2018',
+    'sendImmediately': false
+  }})
+    .then(function (response) {
+        console.log(response);
+    })
+    .catch(function (err) {
+        // Crawling failed...
+    });
 
 manager.addNamedEntityText('skill','NodeJS',['en'],['nodejs', 'node']);
 manager.addNamedEntityText('skill','Java',['en'],['java']);
