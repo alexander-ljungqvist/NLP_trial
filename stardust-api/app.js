@@ -23,7 +23,6 @@ async function fetchStardustData(){
   await request(options)
       .then(response => {
           const description = JSON.stringify(JSON.parse(response).briefingDocument);
-          console.log(description);
           readDescription(description);
       })
       .catch(err => {
