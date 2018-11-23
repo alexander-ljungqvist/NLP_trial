@@ -1,5 +1,6 @@
 const { NerManager } = require('node-nlp');
-const manager = new NerManager({ threshold: 0.8 });
+const skillManager = new NerManager({ threshold: 0.8 });
+const skillGroupManager = new NerManager({ threshold: 0.8 });
 
 const request = require('request-promise');
 const urlStardust = 'https://stardust-staging.softhouselabs.com/api/commission/296';
@@ -32,12 +33,12 @@ async function fetchKUSHData(){
 }
 
 function setSkillGroupEntities(description){
-  description.map(skillgroup => manager.addNamedEntityText('skillGroup', skillgroup.name,['en'],[skillgroup.name]));
+  description.map(skillgroup => skillGroupManager.addNamedEntityText('skillGroup', skillgroup.name,['en'],[skillgroup.name]));
 }
 
 function setSkillEntities(description){
   description.map(skillgroup => {
-    skillgroup.skills.map(skill => manager.addNamedEntityText('skill', skill,['en'],[skill]));
+    skillgroup.skills.map(skill => skillManager.addNamedEntityText('skill', skill,['en'],[skill]));
   });
 }
 
@@ -61,7 +62,17 @@ async function fetchStardustData(){
 }
 
 function readDescription(description){
-  manager.findEntities(
+  skillManager.findEntities(
+    description,
+    'en',
+  ).then(entities => {
+    const skillList = entities.reduce((skills, entity) => {
+      skills[entity.option] = entity.entity;
+      return skills;
+    }, {});
+    console.log(skillList);
+  })
+  skillGroupManager.findEntities(
     description,
     'en',
   ).then(entities => {
