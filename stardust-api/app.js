@@ -76,11 +76,11 @@ function readDescription(description){
     description,
     'en',
   ).then(entities => {
-    const skillList = entities.reduce((skills, entity) => {
-      skills[entity.option] = entity.entity;
-      return skills;
+    const skillGroupList = entities.reduce((skillGroups, entity) => {
+      skillGroups[entity.option] = entity.entity;
+      return skillGroups;
     }, {});
-    console.log(skillList);
+    console.log(skillGroupList);
   })
 }
 
