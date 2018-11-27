@@ -1,0 +1,191 @@
+import * as isMergeableObject from 'is-mergeable-object';
+
+function emptyTarget(val)
+{
+	return Array.isArray(val) ? [] : {}
+}
+
+function cloneUnlessOtherwiseSpecified(value, optionsArgument: deepmerge.Options, tmp?: deepmerge.ICache)
+{
+	let clone = !optionsArgument || optionsArgument.clone !== false;
+
+	let bool = clone && _isMergeableObject(value, optionsArgument, tmp);
+
+	let ret = (bool)
+		? deepmerge(emptyTarget(value), value, optionsArgument)
+		: value;
+
+	if (optionsArgument && optionsArgument.keyValueOrMode && !bool && tmp && ('key' in tmp))
+	{
+		if (tmp.destination)
+		{
+			//console.log('destination', tmp.destination[tmp.key], ret, tmp.key);
+			ret = tmp.destination[tmp.key] || ret;
+		}
+
+		if (tmp.target)
+		{
+			//console.log('target', tmp.target[tmp.key], ret, tmp.key);
+			ret = tmp.target[tmp.key] || ret;
+		}
+
+		if (tmp.source)
+		{
+			//console.log('source', tmp.source[tmp.key], ret, tmp.key);
+			ret = tmp.source[tmp.key] || ret;
+		}
+	}
+
+	return ret;
+}
+
+function _isMergeableObject(value, optionsArgument: deepmerge.Options, tmp?: deepmerge.ICache)
+{
+	let ret;
+	if (optionsArgument && optionsArgument.isMergeableObject)
+	{
+		ret = optionsArgument.isMergeableObject(value, isMergeableObject, optionsArgument, tmp)
+	}
+	if (ret === null || typeof ret === 'undefined')
+	{
+		if (value && (typeof value[deepmerge.SYMBOL_IS_MERGEABLE] == 'boolean'))
+		{
+			ret = value[deepmerge.SYMBOL_IS_MERGEABLE];
+		}
+		else
+		{
+			ret = isMergeableObject(value);
+		}
+	}
+	return ret
+}
+
+function defaultArrayMerge(target, source, optionsArgument: deepmerge.Options)
+{
+	return target.concat(source).map(function (element, index, array)
+	{
+		return cloneUnlessOtherwiseSpecified(element, optionsArgument, {
+			key: index,
+		})
+	})
+}
+
+function mergeObject(target, source, optionsArgument: deepmerge.Options)
+{
+	let destination = {};
+	if (_isMergeableObject(target, optionsArgument))
+	{
+		Object.keys(target).forEach(function (key)
+		{
+			destination[key] = cloneUnlessOtherwiseSpecified(target[key], optionsArgument, {
+				key,
+				source,
+				target,
+				destination,
+			})
+		})
+	}
+	Object.keys(source).forEach(function (key)
+	{
+		if (!_isMergeableObject(source[key], optionsArgument, {
+				key,
+				source,
+				target,
+			}) || !target[key])
+		{
+			destination[key] = cloneUnlessOtherwiseSpecified(source[key], optionsArgument, {
+				key,
+				source,
+				target,
+			})
+		}
+		else
+		{
+			destination[key] = deepmerge(target[key], source[key], optionsArgument)
+		}
+	});
+	return destination
+}
+
+function deepmerge<T1, T2>(x: T1, y: T2, options?: deepmerge.Options): Partial<T1 & T2>
+function deepmerge<T>(x: Partial<T>, y: Partial<T>, options?: deepmerge.Options): Partial<T>
+function deepmerge(target, source, optionsArgument)
+{
+	let sourceIsArray = Array.isArray(source);
+	let targetIsArray = Array.isArray(target);
+	let options = optionsArgument || { arrayMerge: defaultArrayMerge };
+	let sourceAndTargetTypesMatch = sourceIsArray === targetIsArray;
+
+	if (!sourceAndTargetTypesMatch)
+	{
+		return cloneUnlessOtherwiseSpecified(source, optionsArgument, {
+			target,
+			source,
+		});
+	}
+	else if (sourceIsArray)
+	{
+		let arrayMerge = options.arrayMerge || defaultArrayMerge;
+		return arrayMerge(target, source, optionsArgument);
+	}
+	else
+	{
+		return mergeObject(target, source, optionsArgument);
+	}
+}
+
+namespace deepmerge
+{
+	export interface ICache
+	{
+		key?
+		source?
+		target?
+		destination?
+	}
+
+	export interface Options
+	{
+		clone?: boolean;
+
+		arrayMerge?(destination: any[], source: any[], options?: Options): any[];
+
+		isMergeableObject?(value, isMergeableObject: (value) => boolean, optionsArgument?: Options, key?): void;
+
+		isMergeableObject?(value, isMergeableObject: (value) => boolean, optionsArgument?: Options, key?): boolean;
+
+		/**
+		 * (val = old || new) mode
+		 */
+		keyValueOrMode?: boolean,
+	}
+
+	export const isMergeable: (value) => boolean = isMergeableObject;
+	export const SYMBOL_IS_MERGEABLE = Symbol.for('SYMBOL_IS_MERGEABLE');
+
+	export const all = function deepmergeAll<T, T2 = any>(array: Array<Partial<T2 & T>>, optionsArgument?: Options): T2 & T
+		{
+		if (!Array.isArray(array))
+		{
+			throw new Error('first argument should be an array')
+		}
+
+		// @ts-ignore
+		return array.reduce(function (prev, next)
+		{
+			return deepmerge(prev, next, optionsArgument)
+		}, {})
+	}
+}
+
+export = deepmerge
+
+declare global
+{
+	interface Window
+	{
+		deepmerge<T>(x: Partial<T>, y: Partial<T>, options?: deepmerge.Options): T;
+
+		deepmerge<T1, T2>(x: T1, y: T2, options?: deepmerge.Options): T1 & T2;
+	}
+}

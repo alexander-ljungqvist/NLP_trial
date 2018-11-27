@@ -1,0 +1,121 @@
+
+function sortObject<T>(object: T, options?: sortObject.IOptions & {
+	useSource: true,
+}): T
+function sortObject<T>(object: T, options?: sortObject.IOptions & {
+	keys: string[],
+	onlyKeys: true,
+}): Partial<T>
+function sortObject<T>(object: T, options?: sortObject.IOptions): Partial<T>
+function sortObject<T>(object: T, sortFn: (a, b) => any): Partial<T>
+function sortObject<T>(object: T, sortWith: string[]): Partial<T>
+function sortObject(object, sortWith)
+{
+	let options: sortObject.IOptions = {};
+
+	if (typeof sortWith === 'function')
+	{
+		options.sort = sortWith;
+	}
+	else if (Array.isArray(sortWith))
+	{
+		options.keys = sortWith;
+	}
+	else
+	{
+		options = Object.assign(options, sortWith);
+	}
+
+	let keys: string[] = (options.keys || []);
+
+	if (options.onlyKeys)
+	{
+		options.useSource = false;
+
+		if ((options.keys || []).length == 0)
+		{
+			throw new ReferenceError(`options.key is empty or not exists.`)
+		}
+	}
+	else
+	{
+		keys = keys.concat()
+			.concat(Object.keys(object).sort(options.sort))
+		;
+	}
+
+	keys = array_unique(keys);
+
+	if (options.desc)
+	{
+		keys = keys.reverse()
+	}
+
+	let ret = keys.reduce(function (total, key)
+	{
+		if (options.allowNotExists || key in object)
+		{
+			total[key] = object[key];
+		}
+
+		return total;
+	}, {});
+
+	if (options.useSource)
+	{
+		Object.keys(ret)
+			.forEach(function (key, index, array)
+			{
+				delete object[key];
+				object[key] = ret[key];
+			})
+		;
+
+		return object;
+	}
+
+	return ret;
+}
+
+module sortObject
+{
+	export interface IOptions
+	{
+		/**
+		 * key order
+		 */
+		keys?: string[],
+		/**
+		 * return Object only keys
+		 * will disable useSource
+		 */
+		onlyKeys?: boolean,
+		/**
+		 * sort callback
+		 *
+		 * @param a
+		 * @param b
+		 * @returns {any}
+		 */
+		sort?: (a, b) => any,
+		/**
+		 * return reversed Object
+		 */
+		desc?: boolean,
+		allowNotExists?: boolean,
+		/**
+		 * return source Object
+		 */
+		useSource?: boolean,
+	}
+}
+
+function array_unique(array: any[])
+{
+	return array.filter(function (el, index, arr)
+	{
+		return index == arr.indexOf(el);
+	});
+}
+
+export = sortObject;

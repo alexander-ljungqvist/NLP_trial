@@ -23,21 +23,21 @@ async function fetchKUSHData(){
   
   await request(options)
         .then(response => {
-            const description = JSON.parse(response);
-            setSkillGroupEntities(description);
-            setSkillEntities(description);
+            const skillGroups = JSON.parse(response);
+            setSkillGroupEntities(skillGroups);
+            setSkillEntities(skillGroups);
         })
         .catch(err => {
             console.log(err); // Crawling failed...
         });  
 }
 
-function setSkillGroupEntities(description){
-  description.map(skillgroup => skillGroupManager.addNamedEntityText('skillGroup', skillgroup.name,['en'],[skillgroup.name]));
+function setSkillGroupEntities(skillGroups){
+  skillGroups.map(skillgroup => skillGroupManager.addNamedEntityText('skillGroup', skillgroup.name,['en'],[skillgroup.name]));
 }
 
-function setSkillEntities(description){
-  description.map(skillgroup => {
+function setSkillEntities(skillGroups){
+  skillGroups.map(skillgroup => {
     skillgroup.skills.map(skill => skillManager.addNamedEntityText('skill', skill,['en'],[skill]));
   });
 }
