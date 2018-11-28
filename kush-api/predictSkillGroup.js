@@ -1,12 +1,23 @@
-var userToSkillConnector = require('routes/userToSkillConnector');
+var userToSkillConnector = require('./routes/userToSkillConnector');
+var skills = require('./routes/fetchSkills');
 
 async function userToSkill(){
-    return await userToSkillConnector.fetch();
+    const userskill = await userToSkillConnector.fetch();
+    console.log(userskill);
 }
 
-console.log(userToSkill());
+async function fetchSkills(){
+  const skillGroupList = await skills.fetch();
+  const skillGroups = skillGroupList
+    .map(skill => skill.skillGroupId)
+    .filter(skillGroup => skillGroup != undefined);
+  console.log(skillGroups);
+}
 
-const model = tf.sequential({
+fetchSkills();
+
+function setTensorModel(){
+  const model = tf.sequential({
     layers: [
       tf.layers.dense({
         units: 6,
@@ -24,6 +35,7 @@ const model = tf.sequential({
       })
     ]
   });
+}
 
 async function trainSkillGroupTensor(){
 
