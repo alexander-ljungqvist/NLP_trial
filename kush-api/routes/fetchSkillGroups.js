@@ -1,11 +1,11 @@
 const request = require('request-promise');
-const urlKUSH = 'http://localhost:9090/usertoskillconnector';
+const urlKUSH = 'http://localhost:9090/skillGroup';
 const connect = require('./connectKUSH');
 
 async function fetch(){
     const options = connect.connectKUSH(urlKUSH);
 
-    const userSkills = await request(options)
+    const skillGroups = await request(options)
     .then(response => {
         return JSON.parse(response);
     })
@@ -13,7 +13,7 @@ async function fetch(){
         console.log(err); // Crawling failed...
     });
     
-    return userSkills;
+    return skillGroups;
 }
 
 module.exports = {

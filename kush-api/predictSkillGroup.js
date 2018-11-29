@@ -1,25 +1,67 @@
 var userToSkillConnector = require('./routes/userToSkillConnector');
 var skills = require('./routes/fetchSkills');
+var skillGroups = require('./routes/fetchSkillGroups');
 
-async function userToSkill(){
-    return await userToSkillConnector.fetch();
+async function userToSkills(){
+  const userToSkill = await userToSkillConnector.fetch();
+  const userToSkills = userToSkill.reduce((map, connector) => {
+    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+    map[connector.userId].push(connector);
+    return map;
+  }, []);
+  return userToSkills;
 }
 
-async function fetchSkills(){
+async function skillGroupNameToId(){
+  const skillGroupList = await skillGroups.fetch();
+  return skillGroupList.reduce((map, skillGroup) => {
+    map[skillGroup.name] = map[skillGroup.name] ? map[skillGroup.name] : [];
+    map[skillGroup.name].push(skillGroup._id);
+    return map;
+  }, {});
+}
+
+async function skillGroupIds(){
+  const skillGroupList = await skillGroups.fetch();
+  return skillGroupList.map(skillGroup => skillGroup._id);
+}
+
+async function skillGroupNames(){
+  const skillGroupList = await skillGroups.fetch();
+  return skillGroupList.map(skillGroup => skillGroup.name);
+}
+
+async function skillsToSkillGroup(){
   const skillList = await skills.fetch();
-  console.log(skillList);
-  const skillGroups = skillList
-    .filter(skill => skill.skillGroupId != null)
+  const skillGroupList = await skillGroups.fetch();
+  const skillsToSkillGroup = skillList
+    .filter(skill => !!skill.skillGroupId)
     .reduce((map, skill) => {
-      map[skill.skillGroupId] = map[skill.skillGroupId] ? map[skill.skillGroupId] : [];
-      map[skill.skillGroupId].push(skill._id);
+      const skillGroupFound = skillGroupList.find(group => group._id === skill.skillGroupId);
+      if(skillGroupFound != undefined){
+        map[skillGroupFound.name] = map[skillGroupFound.name] ? map[skillGroupFound.name] : [];
+        map[skillGroupFound.name].push(skill._id);
+      }
       return map;
     }, {});
-  //const userToSkill = userToSkill();
-  console.log(skillGroups);
+  return skillsToSkillGroup;
 }
 
-fetchSkills();
+async function avarageSkillGroupSkill(){
+  const userToSkill = await userToSkillConnector.fetch();
+  const skillList = await skills.fetch();
+  const skillGroupList = await skillGroups.fetch();
+  const userToSkillGroups = userToSkill.reduce((map, connector) => {
+    const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
+    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+    if(skillGroupList.find(group => group._id === groupId)){
+      map[connector.userId].push(groupId);
+    }
+    return map;
+  }, {});
+  console.log(userToSkillGroups);
+}
+avarageSkillGroupSkill();
 
 function setTensorModel(){
   const model = tf.sequential({
