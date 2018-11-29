@@ -1,19 +1,9 @@
 const request = require('request-promise');
 const urlKUSH = 'http://localhost:9090/usertoskillconnector';
+const connect = require('./connectKUSH');
 
 async function fetch(){
-    const options = {
-      har: {
-        url: urlKUSH,
-        method: 'GET',
-        headers: [
-          {
-            name: '',
-            value: ''
-          }
-        ]
-      }
-    }
+    const options = connect.connectKUSH(urlKUSH);
 
     const userSkills = await request(options)
     .then(response => {

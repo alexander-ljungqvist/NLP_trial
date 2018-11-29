@@ -2,15 +2,20 @@ var userToSkillConnector = require('./routes/userToSkillConnector');
 var skills = require('./routes/fetchSkills');
 
 async function userToSkill(){
-    const userskill = await userToSkillConnector.fetch();
-    console.log(userskill);
+    return await userToSkillConnector.fetch();
 }
 
 async function fetchSkills(){
-  const skillGroupList = await skills.fetch();
-  const skillGroups = skillGroupList
-    .map(skill => skill.skillGroupId)
-    .filter(skillGroup => skillGroup != undefined);
+  const skillList = await skills.fetch();
+  console.log(skillList);
+  const skillGroups = skillList
+    .filter(skill => skill.skillGroupId != null)
+    .reduce((map, skill) => {
+      map[skill.skillGroupId] = map[skill.skillGroupId] ? map[skill.skillGroupId] : [];
+      map[skill.skillGroupId].push(skill._id);
+      return map;
+    }, {});
+  //const userToSkill = userToSkill();
   console.log(skillGroups);
 }
 

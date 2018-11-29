@@ -1,19 +1,9 @@
 const request = require('request-promise');
 const urlKUSH = 'http://localhost:9090/skill';
+const connect = require('./connectKUSH');
 
 async function fetch(){
-    const options = {
-      har: {
-        url: urlKUSH,
-        method: 'GET',
-        headers: [
-          {
-            name: '',
-            value: ''
-          }
-        ]
-      }
-    }
+    const options = connect.connectKUSH(urlKUSH);
 
     const skills = await request(options)
     .then(response => {
@@ -25,13 +15,6 @@ async function fetch(){
     
     return skills;
 }
-
-async function fetching(){
-    const skills = await fetch();
-    console.log(skills);
-}
-
-fetching();
 
 module.exports = {
     fetch
