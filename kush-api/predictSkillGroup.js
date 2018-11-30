@@ -3,6 +3,8 @@ var skills = require('./routes/fetchSkills');
 var skillGroups = require('./routes/fetchSkillGroups');
 var utils = require('./utils');
 
+var Promise = require('bluebird');
+
 async function userToSkills(){
   const userToSkill = await userToSkillConnector.fetch();
   const userToSkills = userToSkill.reduce((map, connector) => {
@@ -30,6 +32,12 @@ async function skillGroupIds(){
 async function skillGroupNames(){
   const skillGroupList = await skillGroups.fetch();
   return skillGroupList.map(skillGroup => skillGroup.name);
+}
+
+async function fetchSkillGroups(){
+  return Promise.props({
+    groups: skillGroups.fetch().then(utils.mapEntitiesByField('_id')),
+  });
 }
 
 async function skillsToSkillGroup(){
@@ -62,7 +70,7 @@ async function userToSkillGroup(){
   }, {});
   console.log(userToSkillGroups);
 }
-userToSkillGroup();
+//userToSkillGroup();
 
 function setTensorModel(){
   const model = tf.sequential({
