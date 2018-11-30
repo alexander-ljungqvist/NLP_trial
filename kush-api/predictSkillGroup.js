@@ -5,6 +5,12 @@ var utils = require('./utils');
 
 var Promise = require('bluebird');
 
+async function userToSkill(){
+  return Promise.props({
+    groups: userToSkillConnector.fetch().then(utils.mapEntitiesByField('_id')),
+  });
+}
+
 async function userToSkills(){
   const userToSkill = await userToSkillConnector.fetch();
   const userToSkills = userToSkill.reduce((map, connector) => {
