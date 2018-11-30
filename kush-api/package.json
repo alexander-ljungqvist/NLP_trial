@@ -4,6 +4,7 @@
   "dependencies": {
     "base-64": "^0.1.0",
     "bluebird": "^3.5.3",
+    "moment": "2.14.1",
     "node-fetch": "^2.3.0",
     "node-nlp": "^2.2.4",
     "request": "^2.88.0",
