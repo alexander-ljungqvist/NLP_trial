@@ -72,6 +72,15 @@ async function userToSkillGroup(){
     return map;
   }, {});
   const userToSkill = await userToSkills();
+  const userToSkillIds = Object.values(userToSkill).reduce((map, skillList) => {
+    skillList.reduce((map, skill) => {
+      map[skill.userId] = map[skill.userId] ? map[skill.userId] : [];
+      map[skill.userId].push(skill.skillId);
+      return map;
+    }, map);
+    return map;
+  }, {});
+  console.log(userToSkillIds);
 }
 
 function setTensorModel(){
