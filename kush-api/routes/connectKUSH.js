@@ -5,8 +5,8 @@ function connectKUSH(urlKUSH){
         method: 'GET',
         headers: [
             {
-            name: 'x-goog-authenticated-user-email',
-            value: 'accounts.google.com:rasmus.letterkrantz@softhouse.se'
+            name: '',
+            value: ''
             }
         ]
         }
