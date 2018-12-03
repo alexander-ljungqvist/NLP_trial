@@ -7,7 +7,7 @@ var Promise = require('bluebird');
 
 async function userToSkill(){
   return Promise.props({
-    userToSkillConnectors: userToSkillConnector.fetch().then(utils.mapEntitiesByField('_id')),
+    userToSkillConnectors: userToSkillConnector.fetch().then(utils.groupEntitiesByField('userId')),
   });
 }
 
@@ -66,22 +66,30 @@ async function userToSkillGroup(){
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
     map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-    if(skillGroupList.find(group => group._id === groupId)){
+    if(skillGroupList.find(group => group._id === groupId) && !map[connector.userId].includes(groupId)){
       map[connector.userId].push(groupId);
     }
     return map;
   }, {});
-  const userToSkill = await userToSkills();
-  const userToSkillIds = Object.values(userToSkill).reduce((map, skillList) => {
-    skillList.reduce((map, skill) => {
-      map[skill.userId] = map[skill.userId] ? map[skill.userId] : [];
-      map[skill.userId].push(skill.skillId);
-      return map;
-    }, map);
+  const userToSkillIds = userToSkillConnectors.reduce((map, connector) => {
+    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+    map[connector.userId].push(connector.skillId);
     return map;
   }, {});
-  console.log(userToSkillIds);
+  console.log(userToSkillGroups);
 }
+
+async function userToSkillGroups(){
+  const userToSkillsConnector = await userToSkillConnector.fetch();
+  const skillId = userToSkillsConnector.reduce((map, connector) => {
+    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+    map[connector.userId].push(connector.skillId);
+    return map;
+  }, {});
+  console.log(skillId);
+}
+
+userToSkillGroup();
 
 function setTensorModel(){
   const model = tf.sequential({
