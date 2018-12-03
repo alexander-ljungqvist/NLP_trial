@@ -25,9 +25,9 @@ async function skillGroupNameToId(){
   const skillGroupList = await skillGroups.fetch();
   return skillGroupList.reduce((map, skillGroup) => {
     map[skillGroup.name] = map[skillGroup.name] ? map[skillGroup.name] : [];
-    map[skillGroup.name].push(skillGroup._id);
+    map[skillGroup.name] = skillGroup._id;
     return map;
-  }, {});
+  }, []);
 }
 
 async function skillGroupIds(){
@@ -46,23 +46,38 @@ async function fetchSkillGroups(){
   });
 }
 
-async function skillsToSkillGroup(){
+async function skillIdsToSkillGroup(){
   const [skillList, skillGroupList] = await Promise.all([skills.fetch(), skillGroups.fetch()]);
   const skillsToSkillGroup = skillList
     .filter(skill => !!skill.skillGroupId)
     .reduce((map, skill) => {
       const skillGroupFound = skillGroupList.find(group => group._id === skill.skillGroupId);
       if(skillGroupFound != undefined){
-        map[skillGroupFound.name] = map[skillGroupFound.name] ? map[skillGroupFound.name] : [];
-        map[skillGroupFound.name].push(skill._id);
+        map[skillGroupFound._id] = map[skillGroupFound._id] ? map[skillGroupFound._id] : [];
+        map[skillGroupFound._id].push(skill._id);
       }
       return map;
-    }, {});
+    }, []);
   return skillsToSkillGroup;
 }
 
+async function skillIdToSkillGroupId(){
+  const [skillList, skillGroupList] = await Promise.all([skills.fetch(), skillGroups.fetch()]);
+  const skillIdToSkillGroup = skillList
+    .filter(skill => !!skill.skillGroupId)
+    .reduce((map, skill) => {
+      const skillGroupFound = skillGroupList.find(group => group._id === skill.skillGroupId);
+      if(skillGroupFound != undefined){
+        map[skill._id] = map[skill._id] ? map[skill._id] : [];
+        map[skill._id] = skillGroupFound._id;
+      }
+      return map;
+    }, []);
+  return skillIdToSkillGroup;
+}
+
 async function userToSkillGroup(){
-  const [userToSkillConnectors, skillList, skillGroupList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), skillGroups.fetch()]);
+  const [userToSkillConnectors, skillList, skillGroupList, skillIdToSkillGroup] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), skillGroups.fetch(), skillIdToSkillGroupId()]);
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
     map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
@@ -70,25 +85,22 @@ async function userToSkillGroup(){
       map[connector.userId].push(groupId);
     }
     return map;
-  }, {});
-  const userToSkillIds = userToSkillConnectors.reduce((map, connector) => {
+  }, []);
+  /*const userToSkillIds = userToSkillConnectors.reduce((map, connector) => {
     map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
     map[connector.userId].push(connector.skillId);
     return map;
-  }, {});
-  console.log(userToSkillGroups);
+  }, []);*/
+  const skillGroupAvarage = userToSkillConnectors.reduce((map, connector) => {
+    if(userToSkillGroups[connector.userId].includes(skillIdToSkillGroup[connector.skillId])){
+      
+      /*map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+      map[connector.userId] = userToSkillGroups[connector.userId[skillIdToSkillGroup[connector.skillId]]].push(connector.level);*/
+      return map;
+    }
+  }, []);
+  console.log(skillGroupAvarage);
 }
-
-async function userToSkillGroups(){
-  const userToSkillsConnector = await userToSkillConnector.fetch();
-  const skillId = userToSkillsConnector.reduce((map, connector) => {
-    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-    map[connector.userId].push(connector.skillId);
-    return map;
-  }, {});
-  console.log(skillId);
-}
-
 userToSkillGroup();
 
 function setTensorModel(){
