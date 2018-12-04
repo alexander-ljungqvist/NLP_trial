@@ -76,32 +76,20 @@ async function skillIdToSkillGroupId(){
   return skillIdToSkillGroup;
 }
 
-async function userToSkillGroup(){
-  const [userToSkillConnectors, skillList, skillGroupList, skillIdToSkillGroup] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), skillGroups.fetch(), skillIdToSkillGroupId()]);
+async function userToSkillGroupSkill(){
+  const [userToSkillConnectors, skillList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch()]);
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
-    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-    if(skillGroupList.find(group => group._id === groupId) && !map[connector.userId].includes(groupId)){
-      map[connector.userId].push(groupId);
+    if(groupId){
+      const skillLevel = {groupId: groupId, level: connector.level};
+      map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
+      map[connector.userId].push(skillLevel);
     }
     return map;
   }, []);
-  /*const userToSkillIds = userToSkillConnectors.reduce((map, connector) => {
-    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-    map[connector.userId].push(connector.skillId);
-    return map;
-  }, []);*/
-  const skillGroupAvarage = userToSkillConnectors.reduce((map, connector) => {
-    if(userToSkillGroups[connector.userId].includes(skillIdToSkillGroup[connector.skillId])){
-      
-      /*map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-      map[connector.userId] = userToSkillGroups[connector.userId[skillIdToSkillGroup[connector.skillId]]].push(connector.level);*/
-      return map;
-    }
-  }, []);
-  console.log(skillGroupAvarage);
+  console.log(userToSkillGroups);
 }
-userToSkillGroup();
+userToSkillGroupSkill();
 
 function setTensorModel(){
   const model = tf.sequential({
