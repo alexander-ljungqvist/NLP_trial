@@ -1,5 +1,6 @@
 var userToSkillConnector = require('./routes/userToSkillConnector');
 var skills = require('./routes/fetchSkills');
+var users = require('./routes/fetchUsers');
 var skillGroups = require('./routes/fetchSkillGroups');
 var utils = require('./utils');
 
@@ -77,7 +78,7 @@ async function skillIdToSkillGroupId(){
 }
 
 async function userToSkillGroupSkill(){
-  const [userToSkillConnectors, skillList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch()]);
+  const [userToSkillConnectors, skillList, userList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), users.fetch()]);
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
     if(groupId){
@@ -87,8 +88,22 @@ async function userToSkillGroupSkill(){
     }
     return map;
   }, []);
-  console.log(userToSkillGroups);
+  
+  const avarageSkillGroupSkill = userList.reduce((map, user) => {
+    if(userToSkillGroups[user._id]){
+      map[user._id] = userToSkillGroups[user._id].reduce((map, skillGroupLevel) => {
+        map[skillGroupLevel.groupId] = map[skillGroupLevel.groupId] ? map[skillGroupLevel.groupId] : Object.assign({}, {level: 0, nbrSkills: 0});
+        map[skillGroupLevel.groupId].level += skillGroupLevel.level;
+        map[skillGroupLevel.groupId].nbrSkills++;
+        return map;
+      }, []);
+    }
+    return map;
+  }, []);
+  console.log(avarageSkillGroupSkill);
+  return userToSkillGroups;
 }
+
 userToSkillGroupSkill();
 
 function setTensorModel(){
