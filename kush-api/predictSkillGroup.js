@@ -78,18 +78,17 @@ async function skillIdToSkillGroupId(){
 }
 
 async function userToSkillGroupSkill(){
-  const [userToSkillConnectors, skillList, userList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), users.fetch()]);
+  const [userToSkillConnectors, skillList, userList, skillGroupList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), users.fetch(), skillGroups.fetch()]);
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
-    if(groupId){
+    if(groupId && skillGroupList.find(group => group._id === groupId)){
       const skillLevel = {groupId: groupId, level: connector.level};
       map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
       map[connector.userId].push(skillLevel);
     }
     return map;
   }, []);
-  
-  const avarageSkillGroupSkill = userList.reduce((map, user) => {
+  const userSkillGroupSkill = userList.reduce((map, user) => {
     if(userToSkillGroups[user._id]){
       map[user._id] = userToSkillGroups[user._id].reduce((map, skillGroupLevel) => {
         map[skillGroupLevel.groupId] = map[skillGroupLevel.groupId] ? map[skillGroupLevel.groupId] : Object.assign({}, {level: 0, nbrSkills: 0});
@@ -97,11 +96,22 @@ async function userToSkillGroupSkill(){
         map[skillGroupLevel.groupId].nbrSkills++;
         return map;
       }, []);
-    }
+    };
     return map;
   }, []);
-  console.log(avarageSkillGroupSkill);
-  return userToSkillGroups;
+  const avarageSkillGroup = userList.reduce((map, user) => {
+    if(userToSkillGroups[user._id]){
+      map = skillGroupList.reduce((map, skillGroup) => {
+        if(map[user._id][skillGroup._id]){
+          map[user._id][skillGroup._id].level = map[user._id][skillGroup._id].level/map[user._id][skillGroup._id].nbrSkills;
+          return map;
+        };
+        return map;
+      }, userSkillGroupSkill);
+    };
+    return map;
+  }, []);
+  return avarageSkillGroup;
 }
 
 userToSkillGroupSkill();
