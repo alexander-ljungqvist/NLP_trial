@@ -114,7 +114,26 @@ async function userToSkillGroupSkill(){
   return avarageSkillGroup;
 }
 
-userToSkillGroupSkill();
+async function totalUserSkillLevels(){
+  const [avarageSkillGroupLevels, userList, skillGroupList] = await Promise.all([userToSkillGroupSkill(), users.fetch(), skillGroups.fetch()]);
+  const totalUserSkillLevel = userList.reduce((map, user) => {
+    if(avarageSkillGroupLevels[user._id]){
+      map = skillGroupList.reduce((map, skillGroup) => {
+        if(avarageSkillGroupLevels[user._id][skillGroup._id]){
+          map[user._id] = map[user._id] ? map[user._id] : Object.assign({}, {totalSkill: 0, nbrSkillGroups: 0});
+          map[user._id].totalSkill += avarageSkillGroupLevels[user._id][skillGroup._id].level;
+          map[user._id].nbrSkillGroups++;
+          return map;
+        };
+        return map;
+      }, map);
+    };
+    return map;
+  }, []);
+  return totalUserSkillLevel;
+}
+
+totalUserSkillLevels();
 
 function setTensorModel(){
   const model = tf.sequential({
