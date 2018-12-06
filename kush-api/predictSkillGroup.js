@@ -151,9 +151,13 @@ async function skillGroupLevelOfTotalSkill(){
   return skillGroupLevelOfTotal
 }
 
-async function s(){
-  const a = await skillGroupLevelOfTotalSkill();
-  console.log(a);
+async function userToSkillGroupLevels(){
+  const [avarageSkillGroupLevels, skillGroupLevelsOfTotal, totalUserSkillLevel, userList, skillGroupList] = await Promise.all([userToSkillGroupSkill(), skillGroupLevelOfTotalSkill(), totalUserSkillLevels(), users.fetch(), skillGroups.fetch()]);
+  const userToSkillGroupList = skillGroupList.reduce((map, skillGroup) => {
+    
+    return map;
+  }, []);
+  return userToSkillGroupList;
 }
 
 s();
