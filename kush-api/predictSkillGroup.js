@@ -133,7 +133,30 @@ async function totalUserSkillLevels(){
   return totalUserSkillLevel;
 }
 
-totalUserSkillLevels();
+async function skillGroupLevelOfTotalSkill(){
+  const [avarageSkillGroupLevels, totalUserSkillLevel, userList, skillGroupList] = await Promise.all([userToSkillGroupSkill(), totalUserSkillLevels(), users.fetch(), skillGroups.fetch()]);
+  const skillGroupLevelOfTotal = userList.reduce((map, user) => {
+    if(avarageSkillGroupLevels[user._id]){
+      map[user._id] = skillGroupList.reduce((map, skillGroup) => {
+        if(avarageSkillGroupLevels[user._id][skillGroup._id]){
+          map[skillGroup._id] = map[skillGroup._id] ? map[skillGroup._id] : Object.assign({}, {skillGroupLevel: 0});
+          map[skillGroup._id].skillGroupLevel = avarageSkillGroupLevels[user._id][skillGroup._id].level/totalUserSkillLevel[user._id].totalSkill;
+          return map;
+        };
+        return map;
+      }, []);
+    };
+    return map;
+  }, []);
+  return skillGroupLevelOfTotal
+}
+
+async function s(){
+  const a = await skillGroupLevelOfTotalSkill();
+  console.log(a);
+}
+
+s();
 
 function setTensorModel(){
   const model = tf.sequential({
