@@ -9,6 +9,32 @@ require('@tensorflow/tfjs-node');
 
 var Promise = require('bluebird');
 
+async function predict(){
+  const [skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList] = await Promise.all([skillGroups.fetch(), avarageUserSkillGroupLevels(), userToSkillGroupLevels(), users.fetch()]);
+
+  const model = tf.sequential({
+    layers: [
+      tf.layers.dense({
+        units: skillGroupList.length,
+        inputShape: [skillGroupList.length],
+        activation: 'LeakyReLU',
+        kernelInitializer: 'varianceScaling',
+        useBias: true
+      }),
+      
+      tf.layers.dense({
+        units: skillGroupList.length,
+        activation: 'softmax',
+        kernelInitializer: 'varianceScaling',
+        useBias: false
+      })
+    ]
+  });
+
+  await trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList);
+  predictSkillGroup(model, skillGroupList, avarageSkillGroupLevels);
+}
+
 async function userToSkill(){
   return Promise.props({
     userToSkillConnectors: userToSkillConnector.fetch().then(utils.groupEntitiesByField('userId')),
@@ -168,28 +194,7 @@ async function userToSkillGroupLevels(){
   return userToSkillGroupList;
 }
 
-async function trainSkillGroupTensor(){
-  const [skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList] = await Promise.all([skillGroups.fetch(), avarageUserSkillGroupLevels(), userToSkillGroupLevels(), users.fetch()]);
- 
-  const model = tf.sequential({
-    layers: [
-      tf.layers.dense({
-        units: skillGroupList.length,
-        inputShape: [skillGroupList.legnth],
-        activation: 'LeakyReLU',
-        kernelInitializer: 'varianceScaling',
-        useBias: true
-      }),
-      
-      tf.layers.dense({
-        units: skillGroupList.length,
-        activation: 'softmax',
-        kernelInitializer: 'varianceScaling',
-        useBias: false
-      })
-    ]
-  });
-
+async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList){
   // Learning rate 0.1
   const optimize = tf.train.sgd(0.1);
   
@@ -198,7 +203,7 @@ async function trainSkillGroupTensor(){
     optimizer: optimize
   });
   
-  const xs = tf.tensor(userList.reduce((map, user) => {
+  const avarageSkillGroupLevelPerUser = tf.tensor(userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map.push(skillGroupList.reduce((map, skillGroup) => {
         if(avarageSkillGroupLevels[user._id][skillGroup._id]){
@@ -213,7 +218,7 @@ async function trainSkillGroupTensor(){
     }, [])
   );
     
-  const ys = tf.tensor(userList.reduce((map, user) => {
+  const skillGroupPercentagePerUser = tf.tensor(userList.reduce((map, user) => {
     if(userToSkillGroupLevel[user._id]){
       map.push(skillGroupList.reduce((map, skillGroup) => {
         map.push(userToSkillGroupLevel[user._id][skillGroup._id].skillGroupLevel);
@@ -224,29 +229,25 @@ async function trainSkillGroupTensor(){
     }, [])
   );
   
-  await model.fit(xs, ys, {epochs: 500});
+  await model.fit(avarageSkillGroupLevelPerUser, skillGroupPercentagePerUser, {epochs: 500});
 
   console.log("Model trained");
 }
 
-async function s(){
-  await trainSkillGroupTensor();
-}
-s();
-
-function predictSkillGroup(){
-    const javascriptLevel = document.getElementById("javascriptLevel").value;
-    const HTMLLevel = document.getElementById("HTMLLevel").value;
-    const cLevel = document.getElementById("cLevel").value;
-    const azureLevel = document.getElementById("azureLevel").value;
-    const javaLevel = document.getElementById("javaLevel").value;
-    const asLevel = document.getElementById("asLevel").value;
-  
-    const predictionTensor = model.predict(tf.tensor([javascriptLevel, HTMLLevel, cLevel, azureLevel, javaLevel, asLevel], [1, 6]));
+async function predictSkillGroup(model, skillGroupList, avarageUserSkillGroupLevels){
+  const groupList = skillGroupList.reduce((map, group) => {
+      if(avarageUserSkillGroupLevels["55d1ad394fdbb117004eca2c"][group._id]){
+        map.push(avarageUserSkillGroupLevels["55d1ad394fdbb117004eca2c"][group._id].level);
+        return map;
+      }
+      map.push(0);
+      return map;
+    }, []);
+    console.log(groupList);
+    //const predictionTensor = model.predict(tf.tensor([0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 3, 0], [1, 30]));
+    const predictionTensor = model.predict(tf.tensor(groupList, [1, 30]));
     const tensorData = predictionTensor.dataSync();
-  
-    document.getElementById('output_skillgroup_field').innerText =
-    'Webb ' + Math.round(tensorData[0] * 100) + '% \n' +
-    '.net ' + Math.round(tensorData[1] * 100) + '% \n' +
-    'Android ' + Math.round(tensorData[2] * 100) + '%';
+    console.log(tensorData);
 }
+
+predict();
