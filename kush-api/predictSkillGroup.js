@@ -9,21 +9,23 @@ require('@tensorflow/tfjs-node');
 
 var Promise = require('bluebird');
 
+const featureArray = ["Java", ".Net", "Architecture", "Cloud", "Web", "CI/CD", "Design", "Lean and Agile", "Security", "Testing", "Mobile"];
+
 async function predict(){
   const [skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList] = await Promise.all([skillGroups.fetch(), avarageUserSkillGroupLevels(), userToSkillGroupLevels(), users.fetch()]);
 
   const model = tf.sequential({
     layers: [
       tf.layers.dense({
-        units: skillGroupList.length,
-        inputShape: [skillGroupList.length],
+        units: featureArray.length,
+        inputShape: [featureArray.length],
         activation: 'LeakyReLU',
         kernelInitializer: 'varianceScaling',
         useBias: true
       }),
       
       tf.layers.dense({
-        units: skillGroupList.length,
+        units: featureArray.length,
         activation: 'softmax',
         kernelInitializer: 'varianceScaling',
         useBias: false
@@ -148,7 +150,7 @@ async function userTotalSkillLevels(){
   const totalUserSkillLevel = userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map = skillGroupList.reduce((map, skillGroup) => {
-        if(avarageSkillGroupLevels[user._id][skillGroup._id]){
+        if(avarageSkillGroupLevels[user._id][skillGroup._id] && featureArray.includes(skillGroup.name)){
           map[user._id] = map[user._id] ? map[user._id] : Object.assign({}, {totalSkill: 0, nbrSkillGroups: 0});
           map[user._id].totalSkill += avarageSkillGroupLevels[user._id][skillGroup._id].level;
           map[user._id].nbrSkillGroups++;
@@ -167,7 +169,7 @@ async function skillGroupLevelOfTotalSkill(){
   const skillGroupLevelOfTotal = userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map[user._id] = skillGroupList.reduce((map, skillGroup) => {
-        if(avarageSkillGroupLevels[user._id][skillGroup._id]){
+        if(avarageSkillGroupLevels[user._id][skillGroup._id] && featureArray.includes(skillGroup.name)){
           map[skillGroup._id] = map[skillGroup._id] ? map[skillGroup._id] : Object.assign({}, {skillGroupLevel: 0});
           map[skillGroup._id].skillGroupLevel = avarageSkillGroupLevels[user._id][skillGroup._id].level/totalUserSkillLevel[user._id].totalSkill;
           return map;
@@ -194,6 +196,8 @@ async function userToSkillGroupLevels(){
   return userToSkillGroupList;
 }
 
+// Feature array = [Java, .Net, Architecture, Cloud, Web, CI/CD, Design, Lean and Agile, Security, Testing, Mobile]
+
 async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList){
   // Learning rate 0.1
   const optimize = tf.train.sgd(0.1);
@@ -206,11 +210,13 @@ async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLev
   const avarageSkillGroupLevelPerUser = tf.tensor(userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map.push(skillGroupList.reduce((map, skillGroup) => {
-        if(avarageSkillGroupLevels[user._id][skillGroup._id]){
+        if(avarageSkillGroupLevels[user._id][skillGroup._id] && featureArray.includes(skillGroup.name)){
           map.push(avarageSkillGroupLevels[user._id][skillGroup._id].level);
           return map;
+        } else if(featureArray.includes(skillGroup.name)) {
+          map.push(0);
+          return map;
         }
-        map.push(0);
         return map;
       }, []));
     }
@@ -221,8 +227,11 @@ async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLev
   const skillGroupPercentagePerUser = tf.tensor(userList.reduce((map, user) => {
     if(userToSkillGroupLevel[user._id]){
       map.push(skillGroupList.reduce((map, skillGroup) => {
-        map.push(userToSkillGroupLevel[user._id][skillGroup._id].skillGroupLevel);
-        return map;
+        if(featureArray.includes(skillGroup.name)){
+          map.push(userToSkillGroupLevel[user._id][skillGroup._id].skillGroupLevel);
+          return map;
+        }
+        return map
       }, []));
     }
     return map;
@@ -236,16 +245,18 @@ async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLev
 
 async function predictSkillGroup(model, skillGroupList, avarageUserSkillGroupLevels){
   const groupList = skillGroupList.reduce((map, group) => {
-      if(avarageUserSkillGroupLevels["55d1ad394fdbb117004eca2c"][group._id]){
-        map.push(avarageUserSkillGroupLevels["55d1ad394fdbb117004eca2c"][group._id].level);
+      if(avarageUserSkillGroupLevels["55d2d2ec4fdbb117004ecbac"][group._id] && featureArray.includes(group.name)){
+        map.push(avarageUserSkillGroupLevels["55d2d2ec4fdbb117004ecbac"][group._id].level);
+        return map;
+      } else if(featureArray.includes(group.name)) {
+        map.push(0);
         return map;
       }
-      map.push(0);
       return map;
     }, []);
     console.log(groupList);
     //const predictionTensor = model.predict(tf.tensor([0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 3, 0], [1, 30]));
-    const predictionTensor = model.predict(tf.tensor(groupList, [1, 30]));
+    const predictionTensor = model.predict(tf.tensor(groupList, [1, 11]));
     const tensorData = predictionTensor.dataSync();
     console.log(tensorData);
 }
