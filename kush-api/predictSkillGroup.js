@@ -9,7 +9,7 @@ require('@tensorflow/tfjs-node');
 
 var Promise = require('bluebird');
 
-const featureArray = ["Java", ".Net", "Architecture", "Cloud", "Web", "CI/CD", "Design", "Lean and Agile", "Security", "Testing", "Mobile"];
+const featureArray = ["Java", ".Net", "Architecture", "Cloud", "Web", "Lean and Agile", "Mobile"];
 
 async function predict(){
   const [skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList] = await Promise.all([skillGroups.fetch(), avarageUserSkillGroupLevels(), userToSkillGroupLevels(), users.fetch()]);
@@ -245,8 +245,8 @@ async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLev
 
 async function predictSkillGroup(model, skillGroupList, avarageUserSkillGroupLevels){
   const groupList = skillGroupList.reduce((map, group) => {
-      if(avarageUserSkillGroupLevels["55d2d2ec4fdbb117004ecbac"][group._id] && featureArray.includes(group.name)){
-        map.push(avarageUserSkillGroupLevels["55d2d2ec4fdbb117004ecbac"][group._id].level);
+      if(avarageUserSkillGroupLevels["55d427f34fdbb117004eccaf"][group._id] && featureArray.includes(group.name)){
+        map.push(avarageUserSkillGroupLevels["55d427f34fdbb117004eccaf"][group._id].level);
         return map;
       } else if(featureArray.includes(group.name)) {
         map.push(0);
@@ -256,7 +256,7 @@ async function predictSkillGroup(model, skillGroupList, avarageUserSkillGroupLev
     }, []);
     console.log(groupList);
     //const predictionTensor = model.predict(tf.tensor([0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, 1, 0, 4, 0, 0, 0, 0, 3, 0], [1, 30]));
-    const predictionTensor = model.predict(tf.tensor(groupList, [1, 11]));
+    const predictionTensor = model.predict(tf.tensor(groupList, [1, featureArray.length]));
     const tensorData = predictionTensor.dataSync();
     console.log(tensorData);
 }
