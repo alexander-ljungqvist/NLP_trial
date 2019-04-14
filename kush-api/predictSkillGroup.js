@@ -2,7 +2,6 @@ var userToSkillConnector = require('./routes/userToSkillConnector');
 var skills = require('./routes/fetchSkills');
 var users = require('./routes/fetchUsers');
 var skillGroups = require('./routes/fetchSkillGroups');
-var utils = require('./utils');
 
 const tf = require('@tensorflow/tfjs');
 require('@tensorflow/tfjs-node');
