@@ -25,7 +25,7 @@ async function fetchKUSHData(){
         .then(response => {
             const skillGroups = JSON.parse(response);
             setSkillGroupEntities(skillGroups);
-            setSkillEntities(skillGroups);
+            //setSkillEntities(skillGroups);
         })
         .catch(err => {
             console.log(err); // Crawling failed...
@@ -36,11 +36,11 @@ function setSkillGroupEntities(skillGroups){
   skillGroups.map(skillgroup => skillGroupManager.addNamedEntityText('skillGroup', skillgroup.name,['en'],[skillgroup.name]));
 }
 
-function setSkillEntities(skillGroups){
+/*function setSkillEntities(skillGroups){
   skillGroups.map(skillgroup => {
     skillgroup.skills.map(skill => skillManager.addNamedEntityText('skill', skill,['en'],[skill]));
   });
-}
+}*/
 
 async function fetchStardustData(){
   const options = {
@@ -62,7 +62,7 @@ async function fetchStardustData(){
 }
 
 function readDescription(description){
-  skillManager.findEntities(
+  /*skillManager.findEntities(
     description,
     'en',
   ).then(entities => {
@@ -71,7 +71,7 @@ function readDescription(description){
       return skills;
     }, {});
     console.log(skillList);
-  })
+  })*/
   skillGroupManager.findEntities(
     description,
     'en',

@@ -8,12 +8,9 @@ const tf = require('@tensorflow/tfjs');
 require('@tensorflow/tfjs-node');
 
 var Promise = require('bluebird');
-
 const featureArray = ["Java", ".Net", "Architecture", "Cloud", "Web", "Lean and Agile", "Mobile"];
 
 async function predict(){
-  const [skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList] = await Promise.all([skillGroups.fetch(), avarageUserSkillGroupLevels(), userToSkillGroupLevels(), users.fetch()]);
-
   const model = tf.sequential({
     layers: [
       tf.layers.dense({
@@ -33,83 +30,51 @@ async function predict(){
     ]
   });
 
-  await trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList);
-  predictSkillGroup(model, skillGroupList, avarageSkillGroupLevels);
+  await fetchKUSHInfo()
+    .then(maps => {
+      return Promise.props({
+        model: trainSkillGroupTensor(model, maps.values.skillGroupList, maps.avarageSkillGroupLevels, maps.userToSkillGroupLevel, maps.values.userList),
+        maps: maps
+      })
+    }).then(maps => {
+      console.log(maps.model);
+      predictSkillGroup(model, maps.maps.values.skillGroupList, maps.maps.avarageSkillGroupLevels);
+    });
 }
 
-async function userToSkill(){
+async function fetchKUSHInfo(){
   return Promise.props({
-    userToSkillConnectors: userToSkillConnector.fetch().then(utils.groupEntitiesByField('userId')),
+    userToSkillConnectors: userToSkillConnector.fetch(),
+    skillList: skills.fetch(),
+    userList: users.fetch(),
+    skillGroupList: skillGroups.fetch()
+  }).then(values => {
+    return Promise.props({
+      avarageSkillGroupLevels: avarageUserSkillGroupLevels(values.userToSkillConnectors, values.skillList, values.userList, values.skillGroupList),
+      values: values
+    }) 
+  }).then(res => {
+    return Promise.props({
+      avarageSkillGroupLevels: res.avarageSkillGroupLevels,
+      totalUserSkillLevel: userTotalSkillLevels(res.avarageSkillGroupLevels, res.values.userList, res.values.skillGroupList),
+      values: res.values
+    });
+  }).then(res => {
+    return Promise.props({
+      avarageSkillGroupLevels: res.avarageSkillGroupLevels,
+      skillGroupLevelsOfTotal: skillGroupLevelOfTotalSkill(res.avarageSkillGroupLevels, res.totalUserSkillLevel, res.values.userList, res.values.skillGroupList),
+      values: res.values
+    });
+  }).then(res => {
+    return Promise.props({
+      avarageSkillGroupLevels: res.avarageSkillGroupLevels,
+      userToSkillGroupLevel: userToSkillGroupLevels(res.skillGroupLevelsOfTotal, res.values.userList, res.values.skillGroupList),
+      values: res.values
+    })
   });
 }
 
-async function userToSkills(){
-  const userToSkill = await userToSkillConnector.fetch();
-  const userToSkills = userToSkill.reduce((map, connector) => {
-    map[connector.userId] = map[connector.userId] ? map[connector.userId] : [];
-    map[connector.userId].push(connector);
-    return map;
-  }, []);
-  return userToSkills;
-}
-
-async function skillGroupNameToId(){
-  const skillGroupList = await skillGroups.fetch();
-  return skillGroupList.reduce((map, skillGroup) => {
-    map[skillGroup.name] = map[skillGroup.name] ? map[skillGroup.name] : [];
-    map[skillGroup.name] = skillGroup._id;
-    return map;
-  }, []);
-}
-
-async function skillGroupIds(){
-  const skillGroupList = await skillGroups.fetch();
-  return skillGroupList.map(skillGroup => skillGroup._id);
-}
-
-async function skillGroupNames(){
-  const skillGroupList = await skillGroups.fetch();
-  return skillGroupList.map(skillGroup => skillGroup.name);
-}
-
-async function fetchSkillGroups(){
-  return Promise.props({
-    groups: skillGroups.fetch().then(utils.mapEntitiesByField('_id')),
-  });
-}
-
-async function skillIdsToSkillGroup(){
-  const [skillList, skillGroupList] = await Promise.all([skills.fetch(), skillGroups.fetch()]);
-  const skillsToSkillGroup = skillList
-    .filter(skill => !!skill.skillGroupId)
-    .reduce((map, skill) => {
-      const skillGroupFound = skillGroupList.find(group => group._id === skill.skillGroupId);
-      if(skillGroupFound != undefined){
-        map[skillGroupFound._id] = map[skillGroupFound._id] ? map[skillGroupFound._id] : [];
-        map[skillGroupFound._id].push(skill._id);
-      }
-      return map;
-    }, []);
-  return skillsToSkillGroup;
-}
-
-async function skillIdToSkillGroupId(){
-  const [skillList, skillGroupList] = await Promise.all([skills.fetch(), skillGroups.fetch()]);
-  const skillIdToSkillGroup = skillList
-    .filter(skill => !!skill.skillGroupId)
-    .reduce((map, skill) => {
-      const skillGroupFound = skillGroupList.find(group => group._id === skill.skillGroupId);
-      if(skillGroupFound != undefined){
-        map[skill._id] = map[skill._id] ? map[skill._id] : [];
-        map[skill._id] = skillGroupFound._id;
-      }
-      return map;
-    }, []);
-  return skillIdToSkillGroup;
-}
-
-async function avarageUserSkillGroupLevels(){
-  const [userToSkillConnectors, skillList, userList, skillGroupList] = await Promise.all([userToSkillConnector.fetch(), skills.fetch(), users.fetch(), skillGroups.fetch()]);
+async function avarageUserSkillGroupLevels(userToSkillConnectors, skillList, userList, skillGroupList){
   const userToSkillGroups = userToSkillConnectors.reduce((map, connector) => {
     const groupId = skillList.find(skill => skill._id === connector.skillId).skillGroupId;
     if(groupId && skillGroupList.find(group => group._id === groupId)){
@@ -145,8 +110,7 @@ async function avarageUserSkillGroupLevels(){
   return avarageSkillGroup;
 }
 
-async function userTotalSkillLevels(){
-  const [avarageSkillGroupLevels, userList, skillGroupList] = await Promise.all([avarageUserSkillGroupLevels(), users.fetch(), skillGroups.fetch()]);
+async function userTotalSkillLevels(avarageSkillGroupLevels, userList, skillGroupList){
   const totalUserSkillLevel = userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map = skillGroupList.reduce((map, skillGroup) => {
@@ -164,8 +128,7 @@ async function userTotalSkillLevels(){
   return totalUserSkillLevel;
 }
 
-async function skillGroupLevelOfTotalSkill(){
-  const [avarageSkillGroupLevels, totalUserSkillLevel, userList, skillGroupList] = await Promise.all([avarageUserSkillGroupLevels(), userTotalSkillLevels(), users.fetch(), skillGroups.fetch()]);
+async function skillGroupLevelOfTotalSkill(avarageSkillGroupLevels, totalUserSkillLevel, userList, skillGroupList){
   const skillGroupLevelOfTotal = userList.reduce((map, user) => {
     if(avarageSkillGroupLevels[user._id]){
       map[user._id] = skillGroupList.reduce((map, skillGroup) => {
@@ -182,8 +145,7 @@ async function skillGroupLevelOfTotalSkill(){
   return skillGroupLevelOfTotal
 }
 
-async function userToSkillGroupLevels(){
-  const [skillGroupLevelsOfTotal, userList, skillGroupList] = await Promise.all([skillGroupLevelOfTotalSkill(), users.fetch(), skillGroups.fetch()]);
+async function userToSkillGroupLevels(skillGroupLevelsOfTotal, userList, skillGroupList){
   const userToSkillGroupList = userList.reduce((map, user) => {
     if(skillGroupLevelsOfTotal[user._id]){
       map[user._id] = skillGroupList.reduce((map, skillGroup) => {
@@ -196,7 +158,7 @@ async function userToSkillGroupLevels(){
   return userToSkillGroupList;
 }
 
-// Feature array = [Java, .Net, Architecture, Cloud, Web, CI/CD, Design, Lean and Agile, Security, Testing, Mobile]
+// Feature array = ["Java", ".Net", "Architecture", "Cloud", "Web", "Lean and Agile", "Mobile"]
 
 async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLevels, userToSkillGroupLevel, userList){
   // Learning rate 0.1
@@ -240,11 +202,13 @@ async function trainSkillGroupTensor(model, skillGroupList, avarageSkillGroupLev
   
   await model.fit(avarageSkillGroupLevelPerUser, skillGroupPercentagePerUser, {epochs: 500});
 
-  console.log("Model trained");
+  //console.log("Model trained");
+  return "Model trained";
 }
 
 async function predictSkillGroup(model, skillGroupList, avarageUserSkillGroupLevels){
   const groupList = skillGroupList.reduce((map, group) => {
+      // 55d427f34fdbb117004eccaf userId
       if(avarageUserSkillGroupLevels["55d427f34fdbb117004eccaf"][group._id] && featureArray.includes(group.name)){
         map.push(avarageUserSkillGroupLevels["55d427f34fdbb117004eccaf"][group._id].level);
         return map;
